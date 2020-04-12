@@ -14,15 +14,17 @@ logging.basicConfig(level=logging.INFO)
 
 
 class BeltVisible:
+    # lists of frames (ids) where the belt part is supposed to be detected as closed
     def __init__(self, belt_frames, belt_corner_frames):
         self.belt_frames = belt_frames
         self.belt_corner_frames = belt_corner_frames
 
 
 class BeltDetected:
+    # list of frames (ids) where the belt part was detected as closed
     def __init__(self):
-        self.belt_frames = []
-        self.belt_corner_frames = []
+        self.belt_frames = []  # main part
+        self.belt_corner_frames = []  # corner part
 
     def add_belt(self, frame):
         self.belt_frames.append(frame)
@@ -84,8 +86,8 @@ def belt_detector(net, img, belt_detected, current_frame):
 
 def print_belt_report(belt_detected, total_frames):
     belt_visible = BeltVisible(
-        belt_frames=[i for i in range(124)],
-        belt_corner_frames=[i for i in range(124)]
+        belt_frames=[i for i in range(125)],
+        belt_corner_frames=[i for i in range(125)]
     )
     success_belt_frames = set(belt_visible.belt_frames).intersection(belt_detected.belt_frames)
     success_belt_corner_frames = set(belt_visible.belt_corner_frames).intersection(
@@ -117,7 +119,7 @@ def print_belt_report(belt_detected, total_frames):
 def main():
     with video_capture(VIDEO) as cap:
         net = cv2.dnn.readNet(WEIGHTS, CONFIG)
-        frame_id = 0
+        frame_id = -1
         belt_detected = BeltDetected()
         while True:
             frame = cap.read()
@@ -133,7 +135,7 @@ def main():
             key = cv2.waitKey(1)
             if key == 27:
                 break
-        print_belt_report(belt_detected, frame_id + 1)
+        print_belt_report(belt_detected, frame_id)
 
 
 if __name__ == "__main__":
