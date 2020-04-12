@@ -1,12 +1,30 @@
 import cv2
 from contextlib import contextmanager
-import numpy
+import numpy as np
 
 
 VIDEO = "test.mp4"
 WEIGHTS = "YOLOFI2.weights"
 CONFIG = "YOLOFI.cfg"
 OBJ_NAMES = "obj.names"
+
+
+class BeltVisible:
+    def __init__(self, belt_frames, belt_corner_frames):
+        self.belt_frames = belt_frames
+        self.belt_corner_frames = belt_corner_frames
+
+
+class BeltDetected:
+    def __init__(self):
+        self.belt_frames = []
+        self.belt_corner_frames = []
+
+    def add_belt(self, frame):
+        self.belt_frames.append(frame)
+
+    def add_corner_belt(self, frame):
+        self.belt_corner_frames.append(frame)
 
 
 @contextmanager
@@ -31,20 +49,17 @@ def get_classes():
     return classes
 
 
-def belt_detector(net, img):
+def belt_detector(net, img, belt_detected, current_frame):
     blob = cv2.dnn.blobFromImage(img, 0.00392, (480, 480), (0, 0, 0), True, crop=False)
     net.setInput(blob)
 
     height, width, channels = img.shape
 
-    belt_corner_detected = False
-    belt_detected = False
-
     outs = net.forward(get_layers(net))
     for out in outs:
         for detection in out:
             scores = detection[5:]
-            class_id = numpy.argmax(scores)
+            class_id = np.argmax(scores)
             confidence = scores[class_id]
 
             if confidence > 0.2:
@@ -56,35 +71,60 @@ def belt_detector(net, img):
                 y = int(center_y - h / 2)
                 cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 if class_id == 1:
-                    belt_corner_detected = True
+                    belt_detected.add_corner_belt(current_frame)
                 elif class_id == 0:
-                    belt_detected = True
-    return belt_detected, belt_corner_detected
+                    belt_detected.add_belt(current_frame)
+
+    return belt_detected
 
 
 def main():
     with video_capture(VIDEO) as cap:
         net = cv2.dnn.readNet(WEIGHTS, CONFIG)
-
-        successful_detections = 0
-        frames = 0
+        belt_visible = BeltVisible(
+            belt_frames=[i for i in range(124)],
+            belt_corner_frames=[i for i in range(124)]
+        )
+        frame_id = 0
+        belt_detected = BeltDetected()
         while True:
             frame = cap.read()
+            frame_id += 1
             if not frame[0]:
                 break
             img = frame[1]
 
             # TODO: your code here
 
-            belt_detected, belt_corner_detected = belt_detector(net, img)
-            frames += 1
-            if belt_detected:
-                successful_detections += 1
+            belt_detected = belt_detector(net, img, belt_detected, frame_id)
             cv2.imshow("Image", img)
             key = cv2.waitKey(1)
             if key == 27:
                 break
-        print("Total frames {}, successful detections {}".format(frames, successful_detections))
+
+        success_belt_frames = set(belt_visible.belt_frames).intersection(belt_detected.belt_frames)
+        success_belt_corner_frames = set(belt_visible.belt_corner_frames).intersection(
+            belt_detected.belt_corner_frames
+        )
+        print("Total frames {}, successfully detected belt {} of {} times, corner belt - {} of {}".format(
+            frame_id,
+            len(success_belt_frames),
+            len(belt_visible.belt_frames),
+            len(success_belt_corner_frames),
+            len(belt_visible.belt_corner_frames)
+        ))
+        print("Non detected belt frames: {}".format(
+            set(belt_visible.belt_frames).difference(success_belt_frames))
+        )
+        print("False detected belt frames: {}".format(
+            set(success_belt_frames).difference(belt_visible.belt_frames))
+        )
+        print("Non detected belt corner frames: {}".format(
+            set(belt_visible.belt_corner_frames).difference(success_belt_corner_frames))
+        )
+        print("False detected belt corner frames: {}".format(
+            set(success_belt_corner_frames).difference(belt_visible.belt_corner_frames))
+        )
 
 
 if __name__ == "__main__":
