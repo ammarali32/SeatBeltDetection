@@ -101,16 +101,16 @@ def print_belt_report(belt_detected, total_frames):
             len(belt_visible.belt_corner_frames)
         ))
     logging.info("Non detected belt frames: {}".format(
-        set(belt_visible.belt_frames).difference(success_belt_frames))
+        set(belt_visible.belt_frames).difference(belt_detected.belt_frames))
     )
     logging.info("False detected belt frames: {}".format(
-        set(success_belt_frames).difference(belt_visible.belt_frames))
+        set(belt_detected.belt_frames).difference(belt_visible.belt_frames))
     )
     logging.info("Non detected belt corner frames: {}".format(
-        set(belt_visible.belt_corner_frames).difference(success_belt_corner_frames))
+        set(belt_visible.belt_corner_frames).difference(belt_detected.belt_corner_frames))
     )
     logging.info("False detected belt corner frames: {}".format(
-        set(success_belt_corner_frames).difference(belt_visible.belt_corner_frames))
+        set(belt_detected.belt_corner_frames).difference(belt_visible.belt_corner_frames))
     )
 
 
