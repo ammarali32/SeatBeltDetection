@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import os
 import time
-import numpy as np
 from imutils import face_utils
 import imutils
 
@@ -32,7 +31,21 @@ def main():
 
                 #Type you code here
 
-                blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
+                new_frame = frame.copy()
+
+                clahe = cv2.createCLAHE(clipLimit=200.0, tileGridSize=(8, 8))
+
+                new_frame[:, :, 0] = clahe.apply(frame[:, :, 0])
+                new_frame[:, :, 1] = clahe.apply(frame[:, :, 1])
+                new_frame[:, :, 2] = clahe.apply(frame[:, :, 2])
+
+                kern = cv2.getGaborKernel((10, 10), 2, np.pi / 16 * 15, 5, 50, 1, ktype=cv2.CV_32F)
+                kern /= 1.5 * kern.sum()
+
+                new_frame = cv2.filter2D(new_frame, cv2.CV_8UC3, kern)
+                new_frame = cv2.fastNlMeansDenoising(new_frame, None, 10, 30, 1)
+                blob = cv2.dnn.blobFromImage(new_frame, 0.00392, (480,480),(0,0,0),True,crop= False)
+
                 net.setInput(blob)
                 outs = net.forward(outputlayers)
                 class_ids=[]
@@ -57,8 +70,7 @@ def main():
                                 beltcornerdetected=True
                             elif class_id == 0:
                                 beltdetected=True
-                            
-                print(beltdetected)
+                print(f'{frame_id}: {beltdetected}')
                 cv2.imshow("Image",frame)
                 key =cv2.waitKey(1)
                 if key == 27:
