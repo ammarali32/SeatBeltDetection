@@ -6,6 +6,11 @@ import numpy as np
 from imutils import face_utils
 import imutils
 
+def processFrame(frame):
+    clahe = cv2.createCLAHE(clipLimit=15.0, tileGridSize=(8,8))   
+    applyClahe = lambda x: clahe.apply(x)
+    return cv2.merge(list(map(applyClahe, cv2.split(frame))))
+
 def main():
     
     net =cv2.dnn.readNet("YOLOFI2.weights","YOLOFI.cfg")
@@ -31,6 +36,7 @@ def main():
                 height , width , channels = frame.shape
 
                 #Type you code here
+                frame = processFrame(frame)
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
