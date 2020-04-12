@@ -30,7 +30,9 @@ def main():
                 beltdetected = False 
                 height , width , channels = frame.shape
 
-                #Type you code here
+                cv2.fastNlMeansDenoising(frame, 10, 10, 7, 1)
+                clahe = cv2.createCLAHE(clipLimit=20.0, tileGridSize=(10,10))
+                frame = cv2.merge(list(map(clahe.apply, cv2.split(frame))))
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
