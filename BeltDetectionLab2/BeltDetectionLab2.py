@@ -1,12 +1,16 @@
 import cv2
 from contextlib import contextmanager
 import numpy as np
+import logging
 
 
 VIDEO = "test.mp4"
 WEIGHTS = "YOLOFI2.weights"
 CONFIG = "YOLOFI.cfg"
 OBJ_NAMES = "obj.names"
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 class BeltVisible:
@@ -78,13 +82,41 @@ def belt_detector(net, img, belt_detected, current_frame):
     return belt_detected
 
 
+def print_belt_report(belt_detected, total_frames):
+    belt_visible = BeltVisible(
+        belt_frames=[i for i in range(124)],
+        belt_corner_frames=[i for i in range(124)]
+    )
+    success_belt_frames = set(belt_visible.belt_frames).intersection(belt_detected.belt_frames)
+    success_belt_corner_frames = set(belt_visible.belt_corner_frames).intersection(
+        belt_detected.belt_corner_frames
+    )
+
+    logging.info(
+        "Total frames {}, successfully detected belt {} of {} times, corner belt - {} of {}".format(
+            total_frames,
+            len(success_belt_frames),
+            len(belt_visible.belt_frames),
+            len(success_belt_corner_frames),
+            len(belt_visible.belt_corner_frames)
+        ))
+    logging.info("Non detected belt frames: {}".format(
+        set(belt_visible.belt_frames).difference(success_belt_frames))
+    )
+    logging.info("False detected belt frames: {}".format(
+        set(success_belt_frames).difference(belt_visible.belt_frames))
+    )
+    logging.info("Non detected belt corner frames: {}".format(
+        set(belt_visible.belt_corner_frames).difference(success_belt_corner_frames))
+    )
+    logging.info("False detected belt corner frames: {}".format(
+        set(success_belt_corner_frames).difference(belt_visible.belt_corner_frames))
+    )
+
+
 def main():
     with video_capture(VIDEO) as cap:
         net = cv2.dnn.readNet(WEIGHTS, CONFIG)
-        belt_visible = BeltVisible(
-            belt_frames=[i for i in range(124)],
-            belt_corner_frames=[i for i in range(124)]
-        )
         frame_id = 0
         belt_detected = BeltDetected()
         while True:
@@ -101,30 +133,7 @@ def main():
             key = cv2.waitKey(1)
             if key == 27:
                 break
-
-        success_belt_frames = set(belt_visible.belt_frames).intersection(belt_detected.belt_frames)
-        success_belt_corner_frames = set(belt_visible.belt_corner_frames).intersection(
-            belt_detected.belt_corner_frames
-        )
-        print("Total frames {}, successfully detected belt {} of {} times, corner belt - {} of {}".format(
-            frame_id,
-            len(success_belt_frames),
-            len(belt_visible.belt_frames),
-            len(success_belt_corner_frames),
-            len(belt_visible.belt_corner_frames)
-        ))
-        print("Non detected belt frames: {}".format(
-            set(belt_visible.belt_frames).difference(success_belt_frames))
-        )
-        print("False detected belt frames: {}".format(
-            set(success_belt_frames).difference(belt_visible.belt_frames))
-        )
-        print("Non detected belt corner frames: {}".format(
-            set(belt_visible.belt_corner_frames).difference(success_belt_corner_frames))
-        )
-        print("False detected belt corner frames: {}".format(
-            set(success_belt_corner_frames).difference(belt_visible.belt_corner_frames))
-        )
+        print_belt_report(belt_detected, frame_id + 1)
 
 
 if __name__ == "__main__":
