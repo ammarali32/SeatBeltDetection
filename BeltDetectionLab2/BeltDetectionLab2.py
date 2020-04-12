@@ -31,6 +31,24 @@ def main():
                 height , width , channels = frame.shape
 
                 #Type you code here
+                clahe = cv2.createCLAHE(clipLimit=299.0, tileGridSize=(8,8))
+                output = cv2.split(frame)
+                result = []
+                for element in output:
+                    result.append(clahe.apply(element))
+                frame =  cv2.merge(result)
+                filters = []
+                ksize = 31
+                for theta in np.arange(0, np.pi, np.pi / 16):
+                    kern = cv2.getGaborKernel((ksize, ksize), 2.07, theta, 22, 66, 5, ktype=cv2.CV_32F)
+                kern /= 1.5*kern.sum()
+                filters.append(kern)
+                accum = np.zeros_like(frame)
+                for kern in filters:
+                    fimg = cv2.filter2D(frame, cv2.CV_8UC3, kern)
+                    np.maximum(accum, fimg, accum)
+                frame = accum
+
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
@@ -58,7 +76,7 @@ def main():
                             elif class_id == 0:
                                 beltdetected=True
                             
-                print(beltdetected)
+                print(frame_id, beltdetected)
                 cv2.imshow("Image",frame)
                 key =cv2.waitKey(1)
                 if key == 27:
