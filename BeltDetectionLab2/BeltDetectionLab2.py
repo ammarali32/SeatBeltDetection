@@ -116,6 +116,16 @@ def print_belt_report(belt_detected, total_frames):
     )
 
 
+def apply_clahe(img, **kwargs):
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    lab = cv2.split(lab)
+    clahe = cv2.createCLAHE(**kwargs)
+    lab[0] = clahe.apply(lab[0])
+    lab = cv2.merge((lab[0], lab[1], lab[2]))
+    img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    return img
+
+
 def main():
     with video_capture(VIDEO) as cap:
         net = cv2.dnn.readNet(WEIGHTS, CONFIG)
@@ -129,6 +139,13 @@ def main():
             img = frame[1]
 
             # TODO: your code here
+
+            img = apply_clahe(img=img, clipLimit=15.0, tileGridSize=(10, 10))
+
+            # g_kernel = cv2.getGaborKernel(ksize=(31, 31), sigma=2.9, theta=160,
+            #                               lambd=14.5, gamma=35, psi=50, ktype=cv2.CV_64F)
+            # g_kernel /= 1.5 * g_kernel.sum()
+            # img = cv2.filter2D(img, cv2.CV_8UC3, g_kernel)
 
             belt_detected = belt_detector(net, img, belt_detected, frame_id)
             cv2.imshow("Image", img)
