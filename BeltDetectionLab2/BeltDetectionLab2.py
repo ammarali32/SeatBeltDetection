@@ -48,8 +48,14 @@ def main():
                 beltdetected = False 
                 height , width , channels = frame.shape
 
+                frame = cv2.fastNlMeansDenoising(frame, None, 1, 7, 21)
 
-                #Type you code here
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                frame = clahe.apply(frame)
+                frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+
+                frame = cv2.convertScaleAbs(frame, alpha=1, beta=-40)
 
                 clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
 
@@ -101,6 +107,8 @@ def main():
                 key =cv2.waitKey(1)
                 if key == 27:
                   break
+
+
            
             cap.release()    
             cv2.destroyAllWindows()
