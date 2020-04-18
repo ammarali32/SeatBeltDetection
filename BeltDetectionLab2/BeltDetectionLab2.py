@@ -1,3 +1,4 @@
+import numpy as np 
 import cv2
 import os
 import time
@@ -6,22 +7,23 @@ from imutils import face_utils
 import imutils
 
 def build_filters():
-    filters = []
-    ksize = 31
-    for theta in np.arange(0, np.pi, np.pi / 16):
-        kern = cv2.getGaborKernel((ksize, ksize), 0.3, theta, 9.0, 0.6, 50, ktype=cv2.CV_32F)
-    kern /= 1.5*kern.sum()
-    filters.append(kern)
-    return filters
-
+	 filters = []
+	 ksize = 31
+	 for theta in np.arange(0, np.pi, np.pi / 16):
+	 	kern = cv2.getGaborKernel((ksize, ksize), 0.3, theta, 9.0, 0.6, 50, ktype=cv2.CV_32F)
+	 kern /= 1.5*kern.sum()
+	 filters.append(kern)
+	 return filters
+ 
 def process(img, filters):
-    accum = np.zeros_like(img)
-    for kern in filters:
-        fimg = cv2.filter2D(img, cv2.CV_8UC3, kern)
-    np.maximum(accum, fimg, accum)
-    return accum
+	 accum = np.zeros_like(img)
+	 for kern in filters:
+	 	fimg = cv2.filter2D(img, cv2.CV_8UC3, kern)
+	 np.maximum(accum, fimg, accum)
+	 return accum
 
 def main():
+
     
     net =cv2.dnn.readNet("YOLOFI2.weights","YOLOFI.cfg")
     cap = cv2.VideoCapture("test.mp4")
@@ -39,7 +41,7 @@ def main():
             frame_id=0
             err=0
 
-            count = 0 # for counting frames
+            count = 0  # 149 frames
 
             while True:
                 _, frame = cap.read()
@@ -48,24 +50,23 @@ def main():
                 beltdetected = False 
                 height , width , channels = frame.shape
 
+                #denoising 
+                frame = cv2.fastNlMeansDenoising(frame,frame,3,5,11)
+                #clahe 
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
-                #Type you code here
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                frame = clahe.apply(frame)
+                frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+                frame = cv2.convertScaleAbs(frame, alpha=1, beta=-30)
 
-                clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
-
-                R, G, B = cv2.split(frame)
-
-
-                output1_R = clahe.apply(R)
-                output1_G = clahe.apply(G)
-                output1_B = clahe.apply(B)
-
-                frame = cv2.merge((output1_R, output1_G, output1_B))
-
-                cv2.fastNlMeansDenoising(frame,frame,3,5,11)
-
+                #gabor filtering
                 filters = build_filters()
                 frame = process(frame, filters)
+
+
+
+                
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
@@ -74,9 +75,7 @@ def main():
                 boxes=[]
                 shape=[]
                 confidence=0
-
                 for out in outs:
-
                     for detection in out:
                         scores = detection[5:]
                         class_id = np.argmax(scores)
