@@ -140,12 +140,10 @@ def main():
 
             # TODO: your code here
 
-            img = apply_clahe(img=img, clipLimit=15.0, tileGridSize=(10, 10))
-
-            # g_kernel = cv2.getGaborKernel(ksize=(31, 31), sigma=2.9, theta=160,
-            #                               lambd=14.5, gamma=35, psi=50, ktype=cv2.CV_64F)
-            # g_kernel /= 1.5 * g_kernel.sum()
-            # img = cv2.filter2D(img, cv2.CV_8UC3, g_kernel)
+            img = apply_clahe(img=img, clipLimit=12, tileGridSize=(10, 10))
+            g_kernel = cv2.getGaborKernel(ksize=(4, 4), sigma=5, theta=89,
+                                          lambd=1, gamma=2, psi=0, ktype=cv2.CV_64F)
+            img = cv2.filter2D(img, cv2.CV_8UC3, g_kernel.sum())
 
             belt_detected = belt_detector(net, img, belt_detected, frame_id)
             cv2.imshow("Image", img)
