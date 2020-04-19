@@ -53,12 +53,12 @@ def main():
                 #denoising 
                 frame = cv2.fastNlMeansDenoising(frame,frame,3,5,11)
                 #clahe 
-                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                clahe = cv2.createCLAHE(clipLimit=15.0, tileGridSize=(8, 8))
 
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 frame = clahe.apply(frame)
                 frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
-                frame = cv2.convertScaleAbs(frame, alpha=1, beta=-30)
+                frame = cv2.convertScaleAbs(frame, alpha=1, beta=-40)
 
                 #gabor filtering
                 filters = build_filters()
@@ -106,4 +106,3 @@ def main():
        
 if __name__ == '__main__':
         main()
-
