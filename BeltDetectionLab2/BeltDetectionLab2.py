@@ -1,3 +1,4 @@
+from os.path import dirname, abspath
 import cv2
 from contextlib import contextmanager
 import numpy as np
@@ -8,6 +9,7 @@ VIDEO = "test.mp4"
 WEIGHTS = "YOLOFI2.weights"
 CONFIG = "YOLOFI.cfg"
 OBJ_NAMES = "obj.names"
+SAVE_PATH = dirname(dirname(abspath(__file__))) + "/"
 
 
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 class BeltVisible:
     # lists of frames (ids) where the belt part is supposed to be detected as closed
+    # first frame has id 0
     def __init__(self, belt_frames, belt_corner_frames):
         self.belt_frames = belt_frames
         self.belt_corner_frames = belt_corner_frames
@@ -22,6 +25,7 @@ class BeltVisible:
 
 class BeltDetected:
     # list of frames (ids) where the belt part was detected as closed
+    # first frame has id 0
     def __init__(self):
         self.belt_frames = []  # main part
         self.belt_corner_frames = []  # corner part
@@ -122,8 +126,12 @@ def apply_clahe(img, **kwargs):
     clahe = cv2.createCLAHE(**kwargs)
     lab[0] = clahe.apply(lab[0])
     lab = cv2.merge((lab[0], lab[1], lab[2]))
-    img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-    return img
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
+def apply_gabor(img, **kwargs):
+    g_kernel = cv2.getGaborKernel(**kwargs)
+    return cv2.filter2D(img, cv2.CV_8UC3, g_kernel.sum())
 
 
 def main():
@@ -141,12 +149,21 @@ def main():
             # TODO: your code here
 
             img = apply_clahe(img=img, clipLimit=12, tileGridSize=(10, 10))
-            g_kernel = cv2.getGaborKernel(ksize=(4, 4), sigma=5, theta=89,
-                                          lambd=1, gamma=2, psi=0, ktype=cv2.CV_64F)
-            img = cv2.filter2D(img, cv2.CV_8UC3, g_kernel.sum())
+            # better results for corner belt, slightly worse results for main part
+            # img = apply_gabor(img=img, ksize=(4, 4), sigma=5, theta=89,
+            #                   lambd=1, gamma=2, psi=0, ktype=cv2.CV_64F)
+            # the best result for main part
+            img = apply_gabor(img=img, ksize=(31, 31), sigma=2.9, theta=160,
+                              lambd=14.5, gamma=35, psi=50, ktype=cv2.CV_64F)
 
             belt_detected = belt_detector(net, img, belt_detected, frame_id)
             cv2.imshow("Image", img)
+
+            # to decide which frame should be assumed as belt position changing
+            # chosen id=124, although it is arguable
+            # if frame_id in range(120, 126):
+            #     cv2.imwrite(SAVE_PATH + "{id}.png".format(id=frame_id), img)
+
             key = cv2.waitKey(1)
             if key == 27:
                 break
