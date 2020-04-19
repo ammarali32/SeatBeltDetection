@@ -8,7 +8,7 @@ import imutils
 
 def apply_clahe(img):
     # gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=6.0, tileGridSize=(16, 16))
     clahe_img = clahe.apply(img)
     # clahe_img = cv2.cvtColor(clahe_img, cv2.COLOR_GRAY2RGB)
     return clahe_img
@@ -72,6 +72,7 @@ def main():
                 frame = cv2.merge((r_output, g_output, b_output))
 
                 frame = apply_gabor(frame)
+                cv2.fastNlMeansDenoising(frame, frame, 3, 7, 21)
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
