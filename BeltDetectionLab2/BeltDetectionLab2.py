@@ -31,10 +31,12 @@ def main():
 
             # Type you code here
 
-            frame = apply_sharpening(frame)
-            frame = apply_histogram_equalization(frame)
+            # frame = apply_sharpening(frame)
+            # frame = apply_threshold(frame)
+            # frame = apply_histogram_equalization(frame)
+
             frame = apply_clahe(frame)
-            frame = apply_cleaning(frame)
+            # frame = apply_cleaning(frame)
 
             blob = cv2.dnn.blobFromImage(
                 frame, 0.00392, (480, 480), (0, 0, 0), True, crop=False)
@@ -72,21 +74,23 @@ def main():
         cv2.destroyAllWindows()
 
 
+# Less effective then clahe
 def apply_histogram_equalization(frame):
     R, G, B = cv2.split(frame)
 
-    output1_R = cv2.equalizeHist(R)
-    output1_G = cv2.equalizeHist(G)
-    output1_B = cv2.equalizeHist(B)
+    eh_R = cv2.equalizeHist(R)
+    eh_G = cv2.equalizeHist(G)
+    eh_B = cv2.equalizeHist(B)
 
-    res = cv2.merge((output1_R, output1_G, output1_B))
+    res = cv2.merge((eh_R, eh_G, eh_B))
 
-    # res = cv2.equalizeHist(frame)
     return res
 
 
+# Yeah, by increasing tile grid size from 8 to 16 i got
+# just one false-negative
 def apply_clahe(frame):
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=6.0, tileGridSize=(16, 16))
 
     R, G, B = cv2.split(frame)
 
@@ -96,20 +100,43 @@ def apply_clahe(frame):
 
     res = cv2.merge((clahe_R, clahe_G, clahe_B))
 
-    # res = clahe.apply(frame)
-
     return res
 
 
+# Seems to be a heavy task
+# After clahe setup applying this gives less accuracy
 def apply_cleaning(frame):
-    clean = cv2.fastNlMeansDenoising(frame)
+    h = 15
+    template_window_size = 7
+    search_window_size = 21
+    clean = cv2.fastNlMeansDenoising(
+        frame, None, h, template_window_size, search_window_size)
 
     return clean
 
 
+# Useless :(
 def apply_sharpening(frame):
     kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
     res = cv2.filter2D(frame, -1, kernel)
+
+    return res
+
+
+# Seems cool & in most of frames edges are clear, probably
+# if combine this output with something else it's possible to
+# achieve good results. But not in this lab)
+def apply_threshold(frame):
+    R, G, B = cv2.split(frame)
+
+    R = cv2.adaptiveThreshold(
+        R, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2)
+    G = cv2.adaptiveThreshold(
+        G, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2)
+    B = cv2.adaptiveThreshold(
+        B, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2)
+
+    res = cv2.merge((R, G, B))
 
     return res
 
