@@ -1,3 +1,4 @@
+import numpy as np 
 import cv2
 import os
 import time
@@ -5,21 +6,71 @@ import numpy as np
 from imutils import face_utils
 import imutils
 
-def build_filters():
-    filters = []
-    ksize = 31
-    for theta in np.arange(0, np.pi, np.pi / 16):
-        kern = cv2.getGaborKernel((ksize, ksize), 0.3, theta, 9.0, 0.6, 50, ktype=cv2.CV_32F)
-    kern /= 1.5*kern.sum()
-    filters.append(kern)
-    return filters
 
-def process(img, filters):
-    accum = np.zeros_like(img)
-    for kern in filters:
-        fimg = cv2.filter2D(img, cv2.CV_8UC3, kern)
-    np.maximum(accum, fimg, accum)
-    return accum
+# def conservative_smoothing_gray(data, filter_size):
+# МЕДЛЕННО РАБОТАЕТ И НЕ ОЧЕНЬ ЭФФЕКТИВНО (ВРОДЕ)!
+#     temp = []
+#     indexer = filter_size // 2
+#     new_image = data.copy()
+#     nrow, ncol, nchan = data.shape
+#
+#     for i in range(nrow):
+#         for j in range(ncol):
+#             for k in range(i - indexer, i + indexer + 1):
+#                 for m in range(j - indexer, j + indexer + 1):
+#                     if (k > -1) and (k < nrow):
+#                         if (m > -1) and (m < ncol):
+#                             temp.append(data[k, m].all())
+#             temp.remove(data[i, j].all())
+#
+#             max_value = max(temp)
+#             min_value = min(temp)
+#
+#             if data[i, j].all() > max_value:
+#                 new_image[i, j] = max_value
+#             elif data[i, j].all() < min_value:
+#                 new_image[i, j] = min_value
+#             temp = []
+#     return new_image.copy()
+
+def filterClahe(img):
+    clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(8, 8))
+
+    R, G, B = cv2.split(img)
+
+    clahe_R = clahe.apply(R)
+    clahe_G = clahe.apply(G)
+    clahe_B = clahe.apply(B)
+
+    img = cv2.merge((clahe_R, clahe_G, clahe_B))
+
+    cv2.fastNlMeansDenoising(img)
+    return img
+
+def changingImage(img):
+
+    # brightness = 30
+    # contrast = 30
+    # img = np.int16(img)
+    # # img = img * (contrast / 127 + 1) - contrast + brightness
+    # img = np.clip(img, 0, 255)
+    # img = np.uint8(img)
+
+    # dilated_img = cv2.dilate(img, np.ones((7, 7), np.uint8))
+    # bg_img = cv2.medianBlur(dilated_img, 21)
+    # diff_img = 255 - cv2.absdiff(img, bg_img)
+    # img = diff_img.copy()
+
+    #kernel = np.array([[-1, -1, -1], [-1, 10, -1], [-1, -1, -1]])
+    # img = cv2.filter2D(img, -1, kernel)
+
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.equalizeHist(img)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+    img = filterClahe(img)
+
+    return img
 
 def main():
     
@@ -38,34 +89,18 @@ def main():
             time_now=time.time()
             frame_id=0
             err=0
-
-            count = 0 # for counting frames
-
             while True:
                 _, frame = cap.read()
                 frame_id += 1           
                 beltcornerdetected = False
-                beltdetected = False 
+                beltdetected = False
+                if frame is None:
+                    break
                 height , width , channels = frame.shape
 
-
                 #Type you code here
-
-                clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
-
-                R, G, B = cv2.split(frame)
-
-
-                output1_R = clahe.apply(R)
-                output1_G = clahe.apply(G)
-                output1_B = clahe.apply(B)
-
-                frame = cv2.merge((output1_R, output1_G, output1_B))
-
-                cv2.fastNlMeansDenoising(frame,frame,3,5,11)
-
-                filters = build_filters()
-                frame = process(frame, filters)
+                # frame = conservative_smoothing_gray(frame, 5)
+                frame = changingImage(frame)
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
@@ -74,9 +109,7 @@ def main():
                 boxes=[]
                 shape=[]
                 confidence=0
-
                 for out in outs:
-
                     for detection in out:
                         scores = detection[5:]
                         class_id = np.argmax(scores)
@@ -95,8 +128,7 @@ def main():
                             elif class_id == 0:
                                 beltdetected=True
                             
-                print(count, ' ', beltdetected)
-                count+=1
+                print(frame_id, beltdetected)
                 cv2.imshow("Image",frame)
                 key =cv2.waitKey(1)
                 if key == 27:
