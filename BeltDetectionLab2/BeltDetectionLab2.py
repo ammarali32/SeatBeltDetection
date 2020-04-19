@@ -46,19 +46,13 @@ def main():
             height, width, channels = frame.shape
 
             # # Type you code here
-            # orig_frame = frame
-            # frame = cv2.resize(frame, (300, 300))
-            # frame = frame[136:356, 115:335]
-            # frame = cv2.resize(frame, (480, 480))
+            frame = frame[:, 90:-50]
             frame = increase_brightness(frame, 10)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            # frame = cv2.fastNlMeansDenoising(frame, h=1, templateWindowSize=7, searchWindowSize=21) 
-            frame = cv2.bilateralFilter(frame, d=-1, sigmaSpace=20, sigmaColor=5)
-            clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(8,8))
+            # frame = cv2.bilateralFilter(frame, d=-1, sigmaSpace=20, sigmaColor=5)
+            clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(16,16))
             frame = clahe.apply(frame)
-            # frame = cv2.equalizeHist(frame)
             frame = cv2.cvtColor(frame,cv2.COLOR_GRAY2RGB)
-            
 
             blob = cv2.dnn.blobFromImage(frame, 0.00392, (480, 480), (0, 0, 0), True, crop=False)
             net.setInput(blob)
@@ -96,7 +90,7 @@ def main():
             print(is_correct)
             pred_corrects.append(is_correct)
             # print(beltdetected)
-            # cv2.imshow("Image", frame)
+            cv2.imshow("Image", frame)
             key = cv2.waitKey(1)
             if key == 27:
                 break
