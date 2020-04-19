@@ -4,7 +4,7 @@ import numpy as np
 
 def build_filters():
     filters = []
-    ksize = 9
+    ksize = 31
     theta = [cv2.getGaborKernel((ksize, ksize), 0.3, theta, 9.0, 0.6, 50, ktype=cv2.CV_32F)
              for theta in np.arange(0, np.pi, np.pi / 16)]
     kern = theta[-1]
@@ -37,7 +37,8 @@ def main():
             height, width, channels = frame.shape
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            first_clahe = cv2.createCLAHE(clipLimit=200.0, tileGridSize=(8, 8))
+            frame = cv2.equalizeHist(frame)
+            first_clahe = cv2.createCLAHE(clipLimit=250.0, tileGridSize=(8, 8))
             frame = first_clahe.apply(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
             frame = cv2.convertScaleAbs(frame, alpha=1, beta=-40)
@@ -53,7 +54,6 @@ def main():
             frame = cv2.merge((output1_R, output1_G, output1_B))
 
             cv2.fastNlMeansDenoising(frame, frame, 3, 5, 11)
-
 
             filters = build_filters()
             frame = process(frame, filters)
