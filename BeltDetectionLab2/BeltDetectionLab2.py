@@ -5,21 +5,6 @@ import numpy as np
 from imutils import face_utils
 import imutils
 
-def build_filters():
-    filters = []
-    ksize = 31
-    for theta in np.arange(0, np.pi, np.pi / 16):
-        kern = cv2.getGaborKernel((ksize, ksize), 0.3, theta, 9.0, 0.6, 50, ktype=cv2.CV_32F)
-    kern /= 1.5*kern.sum()
-    filters.append(kern)
-    return filters
-
-def process(img, filters):
-    accum = np.zeros_like(img)
-    for kern in filters:
-        fimg = cv2.filter2D(img, cv2.CV_8UC3, kern)
-    np.maximum(accum, fimg, accum)
-    return accum
 
 def main():
     
@@ -47,25 +32,24 @@ def main():
                 beltcornerdetected = False
                 beltdetected = False 
                 height , width , channels = frame.shape
+                
+                frame = cv2.fastNlMeansDenoisingColored(frame, None, 1, 7, 21)  #After that, the program stopped selecting on the jacket pocket, but select the car door, that's bad
+                #If the denoising is too strong, the belt cannot be detected. This is not the best solution.
+
+                #frame = cv2.medianBlur(frame, 5)
+                #frame = cv2.bilateralFilter(frame, 9, 75, 75)  --  i tried this. It's not working. I think imagage filtering is not very suitable.
+
+                g_kernel = cv2.getGaborKernel((25, 25), 0.1, 1*np.pi/2, 9.0, 0.6, 25, ktype=cv2.CV_32F) #After the Gabor filter, it got better (there is almost no "false" in the output), but there is a false select on the door.
+                frame = cv2.filter2D(frame, cv2.CV_8UC3, g_kernel)
+
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+                lab_planes = cv2.split(lab)
+                clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
+                lab_planes[0] = clahe.apply(lab_planes[0])
+                lab = cv2.merge(lab_planes)
+                frame = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR) #This is the best solution. Door problem is resolved. Thank you, CLAHE!
 
 
-                #Type you code here
-
-                clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
-
-                R, G, B = cv2.split(frame)
-
-
-                output1_R = clahe.apply(R)
-                output1_G = clahe.apply(G)
-                output1_B = clahe.apply(B)
-
-                frame = cv2.merge((output1_R, output1_G, output1_B))
-
-                cv2.fastNlMeansDenoising(frame,frame,3,5,11)
-
-                filters = build_filters()
-                frame = process(frame, filters)
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
