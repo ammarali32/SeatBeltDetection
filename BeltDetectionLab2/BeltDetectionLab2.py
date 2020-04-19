@@ -1,19 +1,6 @@
 import cv2
-import os
 import time
 import numpy as np
-from imutils import face_utils
-import imutils
-
-
-def build_filters():
-    filters = []
-    ksize = 31
-    for theta in np.arange(0, np.pi, np.pi / 16):
-        kern = cv2.getGaborKernel((ksize, ksize), 0.3, theta, 9.0, 0.6, 50, ktype=cv2.CV_32F)
-    kern /= 1.5 * kern.sum()
-    filters.append(kern)
-    return filters
 
 
 def apply_clahe(frame):
@@ -32,22 +19,15 @@ def is_correct(beltdetected, frame_id):
 def main():
     net = cv2.dnn.readNet("YOLOFI2.weights", "YOLOFI.cfg")
     cap = cv2.VideoCapture("test.mp4")
-    classes = []
-    l = 1
 
     with open("obj.names", "r")as f:
-        classes = [line.strip()for line in f.readlines()]
         layers_names = net.getLayerNames()
         outputlayers = [
             layers_names[i[0]-1]
             for i in net.getUnconnectedOutLayers()
             ]
-        colors = np.random.uniform(0, 255, size = (len(classes), 3))
-        font = cv2.FONT_HERSHEY_PLAIN
-        dd = -1
-        time_now = time.time()
+        start_time = time.time()
         frame_id = 0
-        err = 0
 
         prediction_results = []
         while True:
@@ -60,15 +40,10 @@ def main():
             height, width, channels = frame.shape
 
             frame = apply_clahe(frame)
-
             blob = cv2.dnn.blobFromImage(frame, 0.00392, (480, 480), (0, 0, 0),
                                          True, crop=False)
             net.setInput(blob)
             outs = net.forward(outputlayers)
-            class_ids = []
-            boxes = []
-            shape = []
-            confidence = 0
 
             for out in outs:
                 for detection in out:
@@ -100,6 +75,8 @@ def main():
 
         print("Accuracy: {}".format(sum(prediction_results) /
                                     len(prediction_results)))
+        finish_time = time.time()
+        print('TIME: %s seconds' % round(finish_time-start_time, 2))
         cap.release()
         cv2.destroyAllWindows()
 
