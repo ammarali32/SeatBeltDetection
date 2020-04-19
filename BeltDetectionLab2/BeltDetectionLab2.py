@@ -35,17 +35,12 @@ def main():
                 break
             beltdetected = False
             height, width, channels = frame.shape
-
-            frame = cv2.fastNlMeansDenoising(frame, None, 1, 7, 21)
-
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            clahe = cv2.createCLAHE(clipLimit=12.0, tileGridSize=(20,20))
-            frame = clahe.apply(frame)
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+            frame = cv2.addWeighted(frame, 1.3, frame, 0,-10)  # change the contrast of the frame
 
             filters = build_filters()
             frame = process(frame, filters)
 
+            frame = cv2.fastNlMeansDenoisingColored(frame, None, 3, 10, 7, 30)  # also use the NON-LOCAL MEANS DENOISING ALGOROTHM
             blob = cv2.dnn.blobFromImage(frame, 0.00392, (480, 480), (0, 0, 0), True, crop=False)
             net.setInput(blob)
             outs = net.forward(outputlayers)
@@ -58,7 +53,7 @@ def main():
                     confidence = scores[class_id]
                     if confidence != 0:
                         print(confidence)  # to find optimal one
-                    if confidence > 0.36:
+                    if confidence > 0.2:  # decrease confidence cos it is accurate enought
                         center_x = int(detection[0] * width)
                         center_y = int(detection[1] * height)
                         w = int(detection[2] * width)
