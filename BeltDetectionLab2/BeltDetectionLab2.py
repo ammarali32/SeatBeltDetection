@@ -24,6 +24,11 @@ def process(img, filters):
     return accum
 
 
+def is_correct(beltdetected, frame_id):
+    return beltdetected and frame_id <= 125 or \
+           not beltdetected and frame_id > 125
+
+
 def main():
     net = cv2.dnn.readNet("YOLOFI2.weights", "YOLOFI.cfg")
     cap = cv2.VideoCapture("test.mp4")
@@ -47,15 +52,15 @@ def main():
 
         count = 0   # for counting frames
 
+        prediction_results = []
         while True:
             _, frame = cap.read()
             frame_id += 1
             beltcornerdetected = False
             beltdetected = False
+            if frame is None:
+                break
             height, width, channels = frame.shape
-
-
-            #Type you code here
 
             clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
 
@@ -82,7 +87,6 @@ def main():
             confidence = 0
 
             for out in outs:
-
                 for detection in out:
                     scores = detection[5:]
                     class_id = np.argmax(scores)
@@ -101,13 +105,19 @@ def main():
                         elif class_id == 0:
                             beltdetected = True
 
-            print(count, ' ', beltdetected)
+            prediction_result = is_correct(beltdetected, frame_id)
+            prediction_results.append(prediction_result)
+            print('Count: %s; Belt: %s; Correct: %s' % (frame_id, beltdetected,
+                                                        prediction_result))
+            print(count)
             count += 1
             cv2.imshow("Image", frame)
             key = cv2.waitKey(1)
             if key == 27:
                 break
 
+        print("Accuracy: {}".format(sum(prediction_results) /
+                                    len(prediction_results)))
         cap.release()
         cv2.destroyAllWindows()
 
