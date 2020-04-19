@@ -87,9 +87,9 @@ def main():
             # output whether prediction is correct
             print(frame_id)
             is_correct = 0
-            if beltdetected and frame_id <= 130:
+            if beltdetected and frame_id <= 125:
                 is_correct = 1
-            elif not beltdetected and frame_id > 130:
+            elif not beltdetected and frame_id > 125:
                 is_correct = 1
             print(is_correct)
             pred_corrects.append(is_correct)
