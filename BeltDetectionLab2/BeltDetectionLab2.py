@@ -1,4 +1,6 @@
-import numpy as np 
+#!/usr/bin/env python3
+
+import numpy as np
 import cv2
 import os
 import time
@@ -7,10 +9,10 @@ from imutils import face_utils
 import imutils
 
 def main():
-    
+
     net =cv2.dnn.readNet("YOLOFI2.weights","YOLOFI.cfg")
     cap = cv2.VideoCapture("test.mp4")
-    classes=[]  
+    classes=[]
     l=1
     with open("obj.names","r")as f:
             classes = [line.strip()for line in f.readlines()]
@@ -18,16 +20,16 @@ def main():
             outputlayers= [layers_names[i[0]-1]for i in net.getUnconnectedOutLayers()]
             colors = np.random.uniform(0,255,size =(len(classes),3))
             font = cv2.FONT_HERSHEY_PLAIN
-            frame_id=0  
+            frame_id=0
             dd =-1
             time_now=time.time()
             frame_id=0
             err=0
             while True:
                 _, frame = cap.read()
-                frame_id += 1           
+                frame_id += 1
                 beltcornerdetected = False
-                beltdetected = False 
+                beltdetected = False
                 height , width , channels = frame.shape
 
                 #Type you code here
@@ -44,7 +46,7 @@ def main():
                         scores = detection[5:]
                         class_id = np.argmax(scores)
                         confidence = scores[class_id]
-                        
+
                         if confidence> 0.2:
                             center_x= int(detection[0] *width)
                             center_y=int(detection[1]* height)
@@ -57,16 +59,16 @@ def main():
                                 beltcornerdetected=True
                             elif class_id == 0:
                                 beltdetected=True
-                            
+
                 print(beltdetected)
                 cv2.imshow("Image",frame)
                 key =cv2.waitKey(1)
                 if key == 27:
                   break
-           
-            cap.release()    
+
+            cap.release()
             cv2.destroyAllWindows()
-       
+
 if __name__ == '__main__':
         main()
 
