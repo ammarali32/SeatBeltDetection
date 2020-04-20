@@ -25,8 +25,13 @@ def main():
             time_now=time.time()
             frame_id=0
             err=0
+
+            clahe: cv2.CLAHE = cv2.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
+
             while True:
                 _, frame = cap.read()
+                if frame is None:
+                    break
                 frame_id += 1
                 beltcornerdetected = False
                 beltdetected = False
@@ -34,21 +39,8 @@ def main():
 
                 #Type you code here
 
-                gabour_kernel = cv2.getGaborKernel(
-                    ksize=(32,32),
-                    sigma=0.2,
-                    theta=9 * np.pi / 16,
-                    lambd=9.0,
-                    gamma=0.6,
-                    psi=25,
-                    ktype=cv2.CV_32F
-                )
-
-                frame = cv2.filter2D(
-                    src=frame,
-                    ddepth=cv2.CV_8UC3,
-                    kernel=gabour_kernel
-                )
+                r, g, b = cv2.split(frame)
+                frame = cv2.merge((clahe.apply(r), clahe.apply(g), clahe.apply(b)))
 
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
