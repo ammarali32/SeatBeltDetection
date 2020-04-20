@@ -34,6 +34,22 @@ def main():
 
                 #Type you code here
 
+                gabour_kernel = cv2.getGaborKernel(
+                    ksize=(32,32),
+                    sigma=0.2,
+                    theta=9 * np.pi / 16,
+                    lambd=9.0,
+                    gamma=0.6,
+                    psi=25,
+                    ktype=cv2.CV_32F
+                )
+
+                frame = cv2.filter2D(
+                    src=frame,
+                    ddepth=cv2.CV_8UC3,
+                    kernel=gabour_kernel
+                )
+
                 blob = cv2.dnn.blobFromImage(frame, 0.00392, (480,480),(0,0,0),True,crop= False)
                 net.setInput(blob)
                 outs = net.forward(outputlayers)
