@@ -134,6 +134,14 @@ def apply_gabor(img, **kwargs):
     return cv2.filter2D(img, cv2.CV_8UC3, g_kernel.sum())
 
 
+def increase_brightness(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+    v += 255
+    final_hsv = cv2.merge((h, s, v))
+    return cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+
 def main():
     with video_capture(VIDEO) as cap:
         net = cv2.dnn.readNet(WEIGHTS, CONFIG)
@@ -144,18 +152,18 @@ def main():
             frame_id += 1
             if not frame[0]:
                 break
-            img = frame[1]
+            img = frame[1][:, 50: -50]
 
             # TODO: your code here
+            img = increase_brightness(img)
 
-            img = apply_clahe(img=img, clipLimit=12, tileGridSize=(10, 10))
+            img = apply_clahe(img=img, clipLimit=5, tileGridSize=(17, 17))
             # better results for corner belt, slightly worse results for main part
             # img = apply_gabor(img=img, ksize=(4, 4), sigma=5, theta=89,
             #                   lambd=1, gamma=2, psi=0, ktype=cv2.CV_64F)
             # the best result for main part
             img = apply_gabor(img=img, ksize=(31, 31), sigma=2.9, theta=160,
                               lambd=14.5, gamma=35, psi=50, ktype=cv2.CV_64F)
-
             belt_detected = belt_detector(net, img, belt_detected, frame_id)
             cv2.imshow("Image", img)
 
